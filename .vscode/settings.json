@@ -1,0 +1,18 @@
+{
+  "editor.quickSuggestions": {
+    "comments": false,
+    "strings": true,
+    "other": true
+  },
+  "editor.suggestOnTriggerCharacters": true,
+  "editor.tabCompletion": "on",
+  "editor.suggest.showSnippets": true,
+  "editor.suggest.showWords": true,
+  "editor.inlineSuggest.enabled": true,
+  "editor.parameterHints.enabled": true,
+  "editor.acceptSuggestionOnCommitCharacter": true,
+  "editor.acceptSuggestionOnEnter": "on",
+  "editor.snippetSuggestions": "inline",
+  "files.autoSave": "afterDelay",
+  "postman.settings.dotenv-detection-notification-visibility": false
+}
