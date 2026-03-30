@@ -61,7 +61,7 @@ exports.login = async (req, res) => {
     // Explicitly select password (it's excluded by default)
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+      return res.status(404).json({ success: false, message: 'No account found with this email. Please create an account first.' });
     }
 
     const isMatch = await user.comparePassword(password);

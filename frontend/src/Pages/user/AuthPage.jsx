@@ -46,7 +46,13 @@ export default function AuthPage() {
       login(data.user)
       navigate('/dashboard')
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Something went wrong')
+      const status = err.response?.status
+      const message = err.response?.data?.message || err.message || 'Something went wrong'
+      if (status === 404 && isLogin) {
+        setError('No account found with this email. Please create an account first.')
+      } else {
+        setError(message)
+      }
     } finally {
       setSubmitting(false)
     }
@@ -91,6 +97,15 @@ export default function AuthPage() {
         {error && (
           <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-lg text-center font-medium">
             {error}
+            {error.includes('create an account') && (
+              <button
+                type="button"
+                onClick={() => { setIsLogin(false); setError('') }}
+                className="block w-full mt-2 text-violet-400 hover:text-violet-300 font-semibold underline text-xs cursor-pointer"
+              >
+                → Click here to Sign Up
+              </button>
+            )}
           </div>
         )}
 
