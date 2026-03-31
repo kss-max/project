@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getProjects, createProject } from '../../Services/projectService';
 import { applyToProject } from '../../Services/invitationService';
 import Navbar from '../../Components/layout/Navbar';
+import StudentProfileModal from '../workspace/StudentProfileModal';
 
 // ─── constants ──────────────────────────────────────────
 const CATEGORIES = ['All', 'AI', 'Web', 'Mobile', 'Data Science', 'Hardware', 'Design', 'Other'];
@@ -25,6 +26,7 @@ export default function Projects() {
   const [selected, setSelected]       = useState(null);   // project in modal
   const [showCreate, setShowCreate]   = useState(false);  // create-project modal
   const [applyProject, setApplyProject] = useState(null); // application modal
+  const [selectedUserId, setSelectedUserId] = useState(null);
 
   /* ---------- fetch ---------- */
   useEffect(() => {
@@ -149,7 +151,13 @@ export default function Projects() {
       </div>
 
       {/* ── detail modal ── */}
-      {selected && <ProjectModal project={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <ProjectModal 
+          project={selected} 
+          onClose={() => setSelected(null)} 
+          onViewProfile={(uid) => setSelectedUserId(uid)}
+        />
+      )}
 
       {/* ── create project modal ── */}
       {showCreate && (
@@ -162,6 +170,14 @@ export default function Projects() {
       {/* ── apply to project modal ── */}
       {applyProject && (
         <ApplyModal project={applyProject} onClose={() => setApplyProject(null)} />
+      )}
+
+      {/* ── student profile modal ── */}
+      {selectedUserId && (
+        <StudentProfileModal
+          userId={selectedUserId}
+          onClose={() => setSelectedUserId(null)}
+        />
       )}
     </div>
   );
@@ -225,7 +241,7 @@ function ProjectCard({ project, onView, onApply }) {
 }
 
 // ─── Project Detail Modal ───────────────────────────────
-function ProjectModal({ project, onClose }) {
+function ProjectModal({ project, onClose, onViewProfile }) {
   const p = project;
   const navigate = useNavigate();
 
@@ -325,7 +341,15 @@ function ProjectModal({ project, onClose }) {
                   </div>
                   <div>
                     <p className="text-sm font-bold text-gray-200">{m.user?.name || 'Unknown'}</p>
-                    <p className="text-[10px] uppercase tracking-wider font-bold text-violet-400">{m.role}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-[10px] uppercase tracking-wider font-bold text-violet-400">{m.role}</p>
+                      <button 
+                        onClick={() => onViewProfile(m.user?._id)}
+                        className="text-[9px] text-gray-500 hover:text-white uppercase font-bold transition"
+                      >
+                        (View Profile)
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

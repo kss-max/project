@@ -110,7 +110,10 @@ export default function Dashboard() {
                                     <div className="flex items-start justify-between gap-4">
                                         <div>
                                             <h4 className="text-xl font-bold text-white tracking-tight">{project.title}</h4>
-                                            <p className="mt-2 text-gray-400 line-clamp-2 leading-relaxed">{project.description}</p>
+                                            <p className="mt-1 text-xs text-gray-500 font-medium italic">
+                                                by <span className="text-gray-400">{project.createdBy?.name || 'Unknown'}</span>
+                                            </p>
+                                            <p className="mt-3 text-gray-400 line-clamp-2 leading-relaxed">{project.description}</p>
                                             <p className="mt-3 text-sm text-gray-500 font-medium">
                                                 Stack: {project.techStack?.length > 0 ? <span className="text-violet-400">{project.techStack.join(' · ')}</span> : 'Not specified'}
                                             </p>

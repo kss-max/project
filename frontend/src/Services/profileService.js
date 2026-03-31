@@ -11,3 +11,8 @@ export async function updateProfile(profileData) {
   const { data } = await api.put('/profile', profileData);
   return data;
 }
+
+export async function getProfileById(userId) {
+  const { data } = await api.get(`/profile/${userId}`);
+  return data;
+}

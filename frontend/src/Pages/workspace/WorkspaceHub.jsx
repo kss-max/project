@@ -80,7 +80,6 @@ export default function WorkspaceHub() {
                     </div>
                 </div>
 
-                {/* Nav items */}
                 <nav className="flex-1 px-3 py-4 space-y-1">
                     {NAV_ITEMS.map((item) => (
                         <button
@@ -253,7 +252,6 @@ function TeamHubView({ project, user, navigate, projectId }) {
                             ))}
                         </div>
                     ) : (
-                        // Show current user as owner if no team yet
                         <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-full bg-violet-600 flex items-center justify-center text-white text-sm font-bold">
                                 {(user?.name || 'U')[0].toUpperCase()}

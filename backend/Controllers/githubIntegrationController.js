@@ -13,7 +13,7 @@ function parseGithubUrl(url) {
 function getHeaders() {
     const headers = { 'Accept': 'application/vnd.github.v3+json' };
     if (process.env.GITHUB_TOKEN) {
-        headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`;
+        headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
     }
     return headers;
 }

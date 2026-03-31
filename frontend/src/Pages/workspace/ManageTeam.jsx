@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getProjectMatches } from '../../Services/matchingService'
 import { sendInvitation, getProjectInvitations } from '../../Services/invitationService'
+import StudentProfileModal from './StudentProfileModal'
 
 // ─── Role options (fixed fallback + project-specific) ────
 const FALLBACK_ROLES = ['Member', 'Frontend Lead', 'Backend Lead', 'ML Engineer', 'Project Manager', 'Designer']
@@ -44,6 +45,7 @@ export default function ManageTeam({ project, user, projectId }) {
     const [assignRoles, setAssignRoles] = useState({})  // { userId: role }
     const [inviting, setInviting] = useState({})  // { userId: bool }
     const [invited, setInvited] = useState({})  // { userId: true }
+    const [selectedUserId, setSelectedUserId] = useState(null)
 
     // ── Load matches + invitations on mount ──
     useEffect(() => {
@@ -113,49 +115,51 @@ export default function ManageTeam({ project, user, projectId }) {
                             <TH>Teammate</TH>
                             <TH>Role</TH>
                             <TH>Joined</TH>
+                            <TH>Profile</TH>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                        {/* Owner row (always the current user) */}
-                        <tr>
-                            <td className="px-4 py-3">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-violet-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                                        {(user?.name || 'U')[0].toUpperCase()}
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-medium text-white">{user?.name}</p>
-                                        <p className="text-xs text-gray-500">{user?.email}</p>
-                                    </div>
-                                </div>
-                            </td>
-                            <td className="px-4 py-3">
-                                <span className="text-xs border border-violet-500/40 text-violet-300 px-3 py-1 rounded-full">Owner</span>
-                            </td>
-                            <td className="px-4 py-3 text-xs text-gray-500">
-                                {new Date(p.createdAt).toLocaleDateString()}
-                            </td>
-                        </tr>
-
-                        {/* Other team members */}
-                        {(p.teamMembers || []).filter(m => m.user?._id !== user?._id).map((m, i) => (
+                        {/* Map over all team members from the project data */}
+                        {(p.teamMembers || []).map((m, i) => (
                             <tr key={i}>
                                 <td className="px-4 py-3">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 ${m.role === 'Owner' || (m.user?._id === p.createdBy?._id) ? 'bg-violet-600' : 'bg-indigo-600'}`}>
                                             {(m.user?.name || '?')[0].toUpperCase()}
                                         </div>
                                         <div>
-                                            <p className="text-sm font-medium text-white">{m.user?.name || 'Unknown'}</p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-sm font-medium text-white">{m.user?.name || 'Unknown'}</p>
+                                                {m.user?._id === (p.createdBy?._id || p.createdBy) && (
+                                                    <span className="text-[9px] bg-violet-500/20 text-violet-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider border border-violet-500/30">Founder</span>
+                                                )}
+                                                {m.user?._id === user?._id && (
+                                                    <span className="text-[9px] bg-white/10 text-gray-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider border border-white/10">(You)</span>
+                                                )}
+                                            </div>
                                             <p className="text-xs text-gray-500">{m.user?.email || ''}</p>
                                         </div>
                                     </div>
                                 </td>
                                 <td className="px-4 py-3">
-                                    <span className="text-xs border border-white/10 text-gray-400 px-3 py-1 rounded-full">{m.role || 'Member'}</span>
+                                    <span className={`text-xs px-3 py-1 rounded-full ${
+                                        m.role === 'Owner' || (m.user?._id === p.createdBy?._id)
+                                            ? 'border border-violet-500/40 text-violet-300'
+                                            : 'border border-white/10 text-gray-400'
+                                    }`}>
+                                        {m.role || 'Member'}
+                                    </span>
                                 </td>
                                 <td className="px-4 py-3 text-xs text-gray-500">
                                     {m.joinedAt ? new Date(m.joinedAt).toLocaleDateString() : '—'}
+                                </td>
+                                <td className="px-4 py-3">
+                                    <button 
+                                        onClick={() => setSelectedUserId(m.user?._id)}
+                                        className="text-xs text-violet-400 hover:text-violet-300 font-medium transition"
+                                    >
+                                        View
+                                    </button>
                                 </td>
                             </tr>
                         ))}
@@ -197,7 +201,12 @@ export default function ManageTeam({ project, user, projectId }) {
                                             </div>
                                             <div>
                                                 <p className="text-sm font-medium text-white">{m.user.name}</p>
-                                                <p className="text-xs text-gray-500 capitalize">{m.user.rolePreference || 'Student'}</p>
+                                                <button 
+                                                    onClick={() => setSelectedUserId(m.user._id)}
+                                                    className="text-[10px] text-violet-400 hover:text-violet-300 uppercase font-bold tracking-tighter transition"
+                                                >
+                                                    View Profile
+                                                </button>
                                             </div>
                                         </div>
                                     </td>
@@ -264,6 +273,7 @@ export default function ManageTeam({ project, user, projectId }) {
                                 <TH>Role</TH>
                                 <TH>Status</TH>
                                 <TH>Sent</TH>
+                                <TH>Actions</TH>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
@@ -280,6 +290,14 @@ export default function ManageTeam({ project, user, projectId }) {
                                     </td>
                                     <td className="px-4 py-3 text-xs text-gray-500">
                                         {new Date(inv.createdAt).toLocaleDateString()}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <button 
+                                            onClick={() => setSelectedUserId(inv.receiver?._id)}
+                                            className="text-xs text-violet-400 hover:text-violet-300 transition font-medium"
+                                        >
+                                            View Profile
+                                        </button>
                                     </td>
                                 </tr>
                             ))}
@@ -302,6 +320,14 @@ export default function ManageTeam({ project, user, projectId }) {
                     </p>
                 </div>
             </div>
+
+            {/* Profile Modal */}
+            {selectedUserId && (
+                <StudentProfileModal 
+                    userId={selectedUserId} 
+                    onClose={() => setSelectedUserId(null)} 
+                />
+            )}
 
         </div>
     )
