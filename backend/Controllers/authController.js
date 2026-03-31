@@ -7,11 +7,12 @@ const sendTokenResponse = (user, statusCode, res) => {
     expiresIn: process.env.JWT_EXPIRE,
   });
       
+  const isProduction = process.env.NODE_ENV === 'production';
   const cookieOptions = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    secure: isProduction,               // HTTPS only in production
+    sameSite: isProduction ? 'none' : 'lax', // 'none' needed for cross-origin (Render frontend ↔ backend)
+    maxAge: 7 * 24 * 60 * 60 * 1000,  // 7 days
   };
     
   // Strip password from response
