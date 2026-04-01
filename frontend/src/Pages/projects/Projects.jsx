@@ -4,6 +4,7 @@ import { getProjects, createProject } from '../../Services/projectService';
 import { applyToProject } from '../../Services/invitationService';
 import Navbar from '../../Components/layout/Navbar';
 import StudentProfileModal from '../workspace/StudentProfileModal';
+import { useAuth } from '../../context/AuthContext';
 
 // ─── constants ──────────────────────────────────────────
 const CATEGORIES = ['All', 'AI', 'Web', 'Mobile', 'Data Science', 'Hardware', 'Design', 'Other'];
@@ -18,6 +19,7 @@ const BADGE_COLOR = {
 // ─── main component ─────────────────────────────────────
 export default function Projects() {
   /* ---------- state ---------- */
+  const { user } = useAuth();
   const [projects, setProjects]       = useState([]);
   const [loading, setLoading]         = useState(true);
   const [search, setSearch]           = useState('');
@@ -142,6 +144,7 @@ export default function Projects() {
               <ProjectCard 
                 key={p._id} 
                 project={p} 
+                currentUser={user}
                 onView={() => setSelected(p)} 
                 onApply={() => setApplyProject(p)} 
               />
@@ -154,6 +157,7 @@ export default function Projects() {
       {selected && (
         <ProjectModal 
           project={selected} 
+          currentUser={user}
           onClose={() => setSelected(null)} 
           onViewProfile={(uid) => setSelectedUserId(uid)}
         />
@@ -184,8 +188,11 @@ export default function Projects() {
 }
 
 // ─── Project Card ───────────────────────────────────────
-function ProjectCard({ project, onView, onApply }) {
+function ProjectCard({ project, currentUser, onView, onApply }) {
   const p = project;
+  const isOwner = currentUser?._id === p.createdBy?._id;
+  const isMember = p.teamMembers?.some(m => m.user?._id === currentUser?._id || m.user === currentUser?._id);
+
   return (
     <div className="bg-[#1e1e2a] rounded-2xl shadow-xl border border-white/5 hover:border-violet-500/30 transition-colors p-6 flex flex-col relative group overflow-hidden">
       {/* top row: difficulty + category */}
@@ -222,12 +229,14 @@ function ProjectCard({ project, onView, onApply }) {
           by <span className="text-gray-300 font-medium">{p.createdBy?.name || 'Unknown'}</span>
         </span>
         <div className="flex gap-2">
-            <button
-              onClick={onApply}
-              className="bg-white/5 text-gray-300 font-medium text-xs px-4 py-2 rounded-lg hover:bg-white/10 hover:text-white transition"
-            >
-              Apply
-            </button>
+            {!isOwner && !isMember && (
+              <button
+                onClick={onApply}
+                className="bg-white/5 text-gray-300 font-medium text-xs px-4 py-2 rounded-lg hover:bg-white/10 hover:text-white transition"
+              >
+                Apply
+              </button>
+            )}
             <button
               onClick={onView}
               className="bg-violet-600 text-white font-medium text-xs px-4 py-2 rounded-lg hover:bg-violet-700 transition shadow-lg shadow-violet-900/30"
@@ -241,9 +250,11 @@ function ProjectCard({ project, onView, onApply }) {
 }
 
 // ─── Project Detail Modal ───────────────────────────────
-function ProjectModal({ project, onClose, onViewProfile }) {
+function ProjectModal({ project, currentUser, onClose, onViewProfile }) {
   const p = project;
   const navigate = useNavigate();
+  const isOwner = currentUser?._id === p.createdBy?._id;
+  const isMember = p.teamMembers?.some(m => m.user?._id === currentUser?._id || m.user === currentUser?._id);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
@@ -359,15 +370,26 @@ function ProjectModal({ project, onClose, onViewProfile }) {
 
         {/* actions */}
         <div className="mt-8 flex flex-col sm:flex-row gap-3 pt-6 border-t border-white/5">
-          <button
-            onClick={() => {
-              onClose();
-              navigate(`/workspace/${p._id}/hub`);
-            }}
-            className="flex-1 bg-violet-600 text-white py-3 rounded-xl font-bold hover:bg-violet-700 transition shadow-lg shadow-violet-900/30"
-          >
-            Enter Workspace 🚀
-          </button>
+          {(isOwner || isMember) ? (
+            <button
+              onClick={() => {
+                onClose();
+                navigate(`/workspace/${p._id}/hub`);
+              }}
+              className="flex-1 bg-violet-600 text-white py-3 rounded-xl font-bold hover:bg-violet-700 transition shadow-lg shadow-violet-900/30"
+            >
+              Enter Workspace 🚀
+            </button>
+          ) : (
+            <div className="flex-1 bg-white/5 border border-white/10 p-4 rounded-xl text-center">
+              <p className="text-sm text-gray-400">
+                You must be a member to enter this workspace.
+              </p>
+              <p className="text-xs text-violet-400 mt-1 font-bold italic">
+                Request to join to collaborate!
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

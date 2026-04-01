@@ -46,10 +46,27 @@ export default function WorkspaceHub() {
     useEffect(() => {
         setLoading(true)
         getProjectById(projectId)
-            .then((res) => setProject(res.project))
-            .catch((err) => console.error('Failed to load project', err))
+            .then((res) => {
+                const proj = res.project;
+                setProject(proj);
+                
+                // --- Access Check ---
+                const isOwner = user?._id === proj.createdBy?._id;
+                const isMember = proj.teamMembers?.some(m => 
+                    (m.user?._id || m.user) === user?._id
+                );
+
+                if (!isOwner && !isMember) {
+                    console.warn('Unauthorized access attempt to workspace');
+                    navigate('/projects', { replace: true });
+                }
+            })
+            .catch((err) => {
+                console.error('Failed to load project', err);
+                navigate('/projects', { replace: true });
+            })
             .finally(() => setLoading(false))
-    }, [projectId])
+    }, [projectId, user, navigate])
 
     // ── Sidebar ──────────────────────────────────────────
     function Sidebar() {

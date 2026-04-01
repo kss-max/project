@@ -11,7 +11,7 @@ const {
   addResource,
   deleteResource,
 } = require('../Controllers/projectController');
-const { protect } = require('../Middleware/auth');
+const { protect, isMember } = require('../Middleware/auth');
 
 // All routes require authentication
 router.post('/', protect, createProject);
@@ -20,8 +20,8 @@ router.get('/recommended', protect, getRecommendedProjects);
 router.get('/:id', protect, getProjectById);
 router.put('/:id', protect, updateProject);
 router.delete('/:id', protect, deleteProject);
-router.patch('/:id/github', protect, saveGithubRepo);
-router.post('/:id/resources', protect, addResource);
-router.delete('/:id/resources/:resourceId', protect, deleteResource);
+router.patch('/:id/github', protect, isMember, saveGithubRepo);
+router.post('/:id/resources', protect, isMember, addResource);
+router.delete('/:id/resources/:resourceId', protect, isMember, deleteResource);
 
 module.exports = router;
