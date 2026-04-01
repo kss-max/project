@@ -245,9 +245,7 @@ export default function AIIdeation() {
                   >
                     💾 Save Project
                   </button>
-                  <button className="px-5 py-2.5 border border-white/20 text-gray-300 rounded-lg hover:bg-black/30 text-gray-300 border border-white/5 transition font-medium cursor-pointer">
-                    👥 Find Teammates
-                  </button>
+
                   {project.needsDataset && (
                     <button
                       onClick={() => handleKaggleSearch(project, index)}
