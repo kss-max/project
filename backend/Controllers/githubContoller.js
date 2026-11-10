@@ -21,10 +21,11 @@ Return ONLY JSON:
 { "queries": ["query1", "query2", "query3"] }
 `;
 
+    const groqModel = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
     const groqRes = await axios.post(
       "https://api.groq.com/openai/v1/chat/completions",
       {
-        model: "llama-3.3-70b-versatile",
+        model: groqModel,
         messages: [{ role: "user", content: keywordPrompt }],
         temperature: 0.3
       },

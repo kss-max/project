@@ -4,6 +4,7 @@ import api from './api';
 
 export async function generateIdeas(idea) {
   const { data } = await api.post('/aiideathon/generate', { idea });
+  console.log(data);
   return data;    // { success, projects }
 }
 

@@ -30,15 +30,29 @@ export default function AIIdeation() {
   async function handleGenerate() {
     if (!idea.trim()) return
 
+    console.log('[AIIdeation] Generating ideas for:', idea)
     setLoading(true)
     setResults([])
     setHasGenerated(true)
 
     try {
       const res = await generateIdeas(idea)
-      setResults(res.projects || [])
+      console.log('[AIIdeation] Received API response:', res)
+
+      const projectsList = res?.projects || res?.data?.projects || (Array.isArray(res) ? res : [])
+      console.log('[AIIdeation] Setting results:', projectsList)
+
+      setResults(projectsList)
+
+      // Auto-scroll to results after short delay
+      setTimeout(() => {
+        const el = document.getElementById('results-section')
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' })
+        }
+      }, 100)
     } catch (err) {
-      console.error('Failed to generate ideas:', err)
+      console.error('[AIIdeation] Failed to generate ideas:', err)
       alert(err.response?.data?.message || 'Failed to generate ideas. Please try again.')
     } finally {
       setLoading(false)
@@ -175,7 +189,7 @@ export default function AIIdeation() {
 
         {/* ── Results: Project Cards ── */}
         {results.length > 0 && (
-          <div className="mt-12 space-y-6">
+          <div id="results-section" className="mt-12 space-y-6">
             <h3 className="text-2xl font-bold text-white tracking-tight">
               🎯 Recommended Projects ({results.length})
             </h3>
@@ -185,9 +199,9 @@ export default function AIIdeation() {
 
                 {/* Title + Difficulty */}
                 <div className="flex items-start justify-between gap-4">
-                  <h4 className="text-xl font-bold text-white tracking-tight">{project.title}</h4>
+                  <h4 className="text-xl font-bold text-white tracking-tight">{project.title || 'Untitled Project'}</h4>
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${getDifficultyColor(project.difficulty)}`}>
-                    {project.difficulty.charAt(0).toUpperCase() + project.difficulty.slice(1)}
+                    {project.difficulty ? project.difficulty.charAt(0).toUpperCase() + project.difficulty.slice(1) : 'Medium'}
                   </span>
                 </div>
 
@@ -196,15 +210,15 @@ export default function AIIdeation() {
 
                 {/* Duration */}
                 <p className="mt-3 text-sm text-gray-500">
-                  ⏱️ Estimated Duration: <span className="font-medium text-gray-300">{project.estimatedDuration}</span>
+                  ⏱️ Estimated Duration: <span className="font-medium text-gray-300">{project.estimatedDuration || '4-6 weeks'}</span>
                 </p>
 
                 {/* Tech Stack */}
                 <div className="mt-4">
                   <p className="text-sm font-semibold text-gray-300 mb-2">Tech Stack</p>
                   <div className="flex flex-wrap gap-2">
-                    {project.techStack.map(tech => (
-                      <span key={tech} className="px-3 py-1 bg-violet-500/10 border border-violet-500/20 text-blue-700 text-sm rounded-full font-medium">
+                    {(project.techStack || []).map((tech, ti) => (
+                      <span key={ti} className="px-3 py-1 bg-violet-500/10 border border-violet-500/20 text-blue-700 text-sm rounded-full font-medium">
                         {tech}
                       </span>
                     ))}
@@ -215,8 +229,8 @@ export default function AIIdeation() {
                 <div className="mt-4">
                   <p className="text-sm font-semibold text-green-700 mb-2">✅ Skills You Already Have</p>
                   <div className="flex flex-wrap gap-2">
-                    {project.requiredSkills.map(skill => (
-                      <span key={skill} className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-green-700 text-sm rounded-full font-medium">
+                    {(project.requiredSkills || []).map((skill, si) => (
+                      <span key={si} className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-green-700 text-sm rounded-full font-medium">
                         {skill}
                       </span>
                     ))}
@@ -224,12 +238,12 @@ export default function AIIdeation() {
                 </div>
 
                 {/* Skill Gap */}
-                {project.skillGap.length > 0 && (
+                {(project.skillGap || []).length > 0 && (
                   <div className="mt-4">
                     <p className="text-sm font-semibold text-orange-700 mb-2">📚 Skills to Learn (Skill Gap)</p>
                     <div className="flex flex-wrap gap-2">
-                      {project.skillGap.map(skill => (
-                        <span key={skill} className="px-3 py-1 bg-orange-50 text-orange-700 text-sm rounded-full font-medium">
+                      {(project.skillGap || []).map((skill, gi) => (
+                        <span key={gi} className="px-3 py-1 bg-orange-50 text-orange-700 text-sm rounded-full font-medium">
                           {skill}
                         </span>
                       ))}

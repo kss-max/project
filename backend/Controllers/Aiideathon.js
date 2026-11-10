@@ -17,21 +17,22 @@ exports.getIdea = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // d. Extract ALL useful profile data
+    // d. Extract ALL useful profile data safely
+    const skills = user.skills || {};
     const allSkills = [
-      ...user.skills.programmingLanguages,
-      ...user.skills.webDevelopment,
-      ...user.skills.mobileDevelopment,
-      ...user.skills.aiMl,
-      ...user.skills.databases,
-      ...user.skills.tools,
+      ...(skills.programmingLanguages || []),
+      ...(skills.webDevelopment || []),
+      ...(skills.mobileDevelopment || []),
+      ...(skills.aiMl || []),
+      ...(skills.databases || []),
+      ...(skills.tools || []),
     ];
 
     const interests = user.interests || [];
     const experienceLevel = user.experienceLevel || 'Not specified';
     const department = user.department || 'Not specified';
     const yearOfStudy = user.yearOfStudy || 'Not specified';
-    const achievements = (user.achievements || []).map((a) => a.title).filter(Boolean);
+    const achievements = (user.achievements || []).map((a) => a?.title).filter(Boolean);
 
     // e. Build a SMART prompt
     //    - Always send skills (needed for skill gap calculation)
@@ -72,33 +73,93 @@ Return a JSON array of 3 objects. Each object must have:
 
 Return ONLY valid JSON. No markdown, no explanation, no wrapping.`;
 
-    // f. Call Groq API  (llama-3.3-70b — free & fast)
-    const groqRes = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
-      model: 'llama-3.3-70b-versatile',
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.7,
-    }, {
-      headers: {
-        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    // f. Call Groq API with automatic fallback models
+    const candidateModels = [
+      process.env.GROQ_MODEL || 'openai/gpt-oss-20b',
+      'openai/gpt-oss-120b',
+      'qwen/qwen3.8-27b'
+    ];
+    const modelsToTry = [...new Set(candidateModels)];
+
+    let groqRes;
+    let lastError;
+    for (const model of modelsToTry) {
+      try {
+        groqRes = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
+          model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7,
+        }, {
+          headers: {
+            'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 45000,
+        });
+
+        if (groqRes?.data?.choices?.[0]?.message?.content) {
+          break;
+        }
+      } catch (err) {
+        lastError = err;
+        console.warn(`Groq model ${model} failed:`, err.response?.data?.error?.message || err.message);
+      }
+    }
+
+    if (!groqRes) {
+      throw lastError || new Error('All Groq candidate models failed to respond');
+    }
 
     // g. Extract text from Groq response
     const text = groqRes.data.choices[0].message.content;
 
-    // h. Clean & parse JSON (AI sometimes wraps in ```json ... ```)
+    // h. Clean & parse JSON (extract JSON array even if model wraps in markdown or text)
     let cleaned = text.trim();
-    if (cleaned.startsWith('```')) {
-      cleaned = cleaned.replace(/^```json?\n?/, '').replace(/\n?```$/, '');
+    const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      cleaned = jsonMatch[0];
+    } else if (cleaned.startsWith('```')) {
+      cleaned = cleaned.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim();
     }
-    const projects = JSON.parse(cleaned);
+
+    let rawProjects;
+    try {
+      rawProjects = JSON.parse(cleaned);
+    } catch (parseErr) {
+      console.error('AI Ideation JSON parse error. Raw text:', text);
+      return res.status(500).json({ success: false, message: 'AI returned invalid JSON. Please try again.' });
+    }
+
+    // Sanitize array items to ensure frontend safety
+    const projects = (Array.isArray(rawProjects) ? rawProjects : [rawProjects]).map(p => ({
+      title: p?.title || 'Untitled Project',
+      description: p?.description || '',
+      techStack: Array.isArray(p?.techStack) ? p.techStack : (typeof p?.techStack === 'string' ? p.techStack.split(',').map(s => s.trim()) : []),
+      difficulty: (p?.difficulty || 'medium').toLowerCase(),
+      estimatedDuration: p?.estimatedDuration || '4-6 weeks',
+      requiredSkills: Array.isArray(p?.requiredSkills) ? p.requiredSkills : [],
+      skillGap: Array.isArray(p?.skillGap) ? p.skillGap : [],
+      datasets: Array.isArray(p?.datasets) ? p.datasets : [],
+      challenges: Array.isArray(p?.challenges) ? p.challenges : [],
+      needsDataset: Boolean(p?.needsDataset),
+      category: p?.category || 'Other'
+    }));
 
     // i. Send back to frontend
     res.json({ success: true, projects });
 
   } catch (error) {
-    console.error('AI Ideation error:', error.message);
-    res.status(500).json({ success: false, message: 'Failed to generate ideas' });
+    // Log full Axios error details so we can debug API failures
+    if (error.response) {
+      console.error('AI Ideation Axios error:', error.response.status, JSON.stringify(error.response.data));
+    } else {
+      console.error('AI Ideation error:', error.message);
+    }
+    const message =
+      error.response?.data?.error?.message ||
+      error.response?.data?.message ||
+      error.message ||
+      'Failed to generate ideas';
+    res.status(500).json({ success: false, message });
   }
 };

@@ -1,36 +1,38 @@
+
 require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const connectDB = require('./Config/db');
+
 const authRoutes = require('./Routes/authRoutes');
 const profileRoutes = require('./Routes/profileRoutes');
 const projectRoutes = require('./Routes/projectRoutes');
 const matchingRoutes = require('./Routes/matchingRoutes');
-const aiideathonRoutes = require('./Routes/aiideathonRoutes'); // AI Ideathon routes
-const kaggleRoutes = require('./Routes/kaggleRoutes');         // Kaggle dataset search
-const githubRoutes = require('./Routes/githubRoutes');         // GitHub repo search
-const invitationRoutes = require('./Routes/invitationRoutes'); // Team invitations
-const taskRoutes = require('./Routes/taskRoutes');             // Workspace tasks
-const githubIntegrationRoutes = require('./Routes/githubIntegrationRoutes'); // GitHub integration (branches/commits/PRs)
-const activityRoutes = require('./Routes/activityRoutes');     // Activity feed
+const aiideathonRoutes = require('./Routes/aiideathonRoutes');
+const kaggleRoutes = require('./Routes/kaggleRoutes');
+const githubRoutes = require('./Routes/githubRoutes');
+const invitationRoutes = require('./Routes/invitationRoutes');
+const taskRoutes = require('./Routes/taskRoutes');
+const githubIntegrationRoutes = require('./Routes/githubIntegrationRoutes');
+const activityRoutes = require('./Routes/activityRoutes');
 
 const http = require('http');
 const { Server } = require('socket.io');
 
-// ─── Connect to MongoDB ─────────────────────────────────
-connectDB();
-
+// Initialize Express
 const app = express();
 const server = http.createServer(app);
 
+// Allowed frontend origins
 const allowedOrigins = [
-  'http://localhost:5173', 
+  'http://localhost:5173',
   'https://project-frontend-m3s5.onrender.com',
   process.env.FRONTEND_URL
-];
+].filter(Boolean);
 
-// ─── Socket.io Setup ─────────────────────────────────────
+// Socket.io setup
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
@@ -39,6 +41,7 @@ const io = new Server(server, {
   }
 });
 
+// Socket.io events
 io.on('connection', (socket) => {
   console.log('A user connected via socket.io:', socket.id);
 
@@ -69,37 +72,54 @@ io.on('connection', (socket) => {
   });
 });
 
-// Make io accessible to our routes
+// Make io accessible in routes
 app.set('io', io);
 
-// ─── Middleware ──────────────────────────────────────────
+// Middleware
 app.use(cors({
-  origin: allowedOrigins, 
+  origin: allowedOrigins,
   credentials: true,
 }));
+
 app.use(express.json());
 app.use(cookieParser());
 
-// ─── Routes ─────────────────────────────────────────────
+// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/matching', matchingRoutes);
-app.use('/api/aiideathon', aiideathonRoutes); // AI Ideathon routes
+app.use('/api/aiideathon', aiideathonRoutes);
 app.use('/api/kaggle', kaggleRoutes);
-app.use('/api/github', githubRoutes);        // GitHub integration
-app.use('/api/invitations', invitationRoutes); // Team invitations
-app.use('/api/tasks', taskRoutes);           // Workspace tasks
-app.use('/api/github-integration', githubIntegrationRoutes); // GitHub integration
-app.use('/api/activities', activityRoutes);         // Activity feed
+app.use('/api/github', githubRoutes);
+app.use('/api/invitations', invitationRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/github-integration', githubIntegrationRoutes);
+app.use('/api/activities', activityRoutes);
 
 // Health check
 app.get('/', (req, res) => {
-  res.json({ status: 'ok', message: 'CampusConnector API running' });
+  res.json({
+    status: 'ok',
+    message: 'CampusConnector API running'
+  });
 });
 
-// ─── Start server ───────────────────────────────────────
+// Start server only after MongoDB connects
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+
+const startServer = async () => {
+  try {
+    await connectDB();
+
+    server.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+
+  } catch (error) {
+    console.error('Server startup failed:', error.message);
+    process.exit(1);
+  }
+};
+
+startServer();

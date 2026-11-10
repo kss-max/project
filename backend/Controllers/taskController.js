@@ -139,8 +139,9 @@ Return a JSON array of objects. Each object must exactly have:
 Return ONLY valid JSON. No markdown wrappers, no explanation, no formatting.`;
 
         // 3. Call Groq API (using same config as your Aiideathon.js)
+        const groqModel = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
         const groqRes = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
-            model: 'llama-3.3-70b-versatile',
+            model: groqModel,
             messages: [{ role: 'user', content: prompt }],
             temperature: 0.5,
         }, {
